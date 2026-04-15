@@ -18,7 +18,7 @@ COPY pixi.toml pixi.lock ./
 
 # Install the environment based on your lockfile
 # This will install ccache, paddlepaddle, etc., into the container
-RUN pixi install && pixi clean
+RUN pixi install --locked && pixi clean
 
 # Copy the rest of your application code
 COPY . .
