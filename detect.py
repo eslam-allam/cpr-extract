@@ -20,7 +20,7 @@ def validate_bahrain_cpr(cpr_str):
     return check == digits[8]
 
 
-def extract_data(results, w, h):
+def extract_data(results, h):
     fields = {
         "cpr": None,
         "cpr_verified": False,
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         img = cv2.imread(path)
         if img is None:
             continue
-        res = extract_data(ocr.predict(img), img.shape[1], img.shape[0])
+        res = extract_data(ocr.predict(img), img.shape[0])
 
         if res["cpr_verified"]:
             final["cpr"], final["cpr_verified"] = res["cpr"], True
