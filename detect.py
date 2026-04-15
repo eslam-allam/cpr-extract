@@ -2,7 +2,34 @@ import sys
 import re
 import json
 import cv2
-from paddleocr import PaddleOCR
+import contextlib
+import os
+
+
+@contextlib.contextmanager
+def suppress_stdout_stderr(disabled=False):
+    """Deep redirect of stdout/stderr file descriptors to /dev/null."""
+    if disabled:
+        yield
+        return
+    # Open devnull
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    # Save original FDs
+    old_stdout_fd = os.dup(1)
+    old_stderr_fd = os.dup(2)
+    try:
+        # Redirect FD 1 and 2 to devnull
+        os.dup2(devnull, 1)
+        os.dup2(devnull, 2)
+        yield
+    finally:
+        # Restore original FDs
+        os.dup2(old_stdout_fd, 1)
+        os.dup2(old_stderr_fd, 2)
+        # Close temp FDs
+        os.close(old_stdout_fd)
+        os.close(old_stderr_fd)
+        os.close(devnull)
 
 
 def validate_bahrain_cpr(cpr_str):
@@ -128,31 +155,34 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.exit(1)
 
-    ocr = PaddleOCR(enable_mkldnn=False, lang="ar")
-    final = {
-        "cpr": None,
-        "cpr_verified": False,
-        "arabic_name": None,
-        "english_name": None,
-        "dob": None,
-    }
+    with suppress_stdout_stderr():
+        from paddleocr import PaddleOCR
 
-    for path in sys.argv[1:]:
-        img = cv2.imread(path)
-        if img is None:
-            continue
-        res = extract_data(ocr.predict(img), img.shape[0])
+        ocr = PaddleOCR(enable_mkldnn=False, lang="ar")
+        final = {
+            "cpr": None,
+            "cpr_verified": False,
+            "arabic_name": None,
+            "english_name": None,
+            "dob": None,
+        }
 
-        if res["cpr_verified"]:
-            final["cpr"], final["cpr_verified"] = res["cpr"], True
-        elif not final["cpr"]:
-            final["cpr"] = res["cpr"]
+        for path in sys.argv[1:]:
+            img = cv2.imread(path)
+            if img is None:
+                continue
+            res = extract_data(ocr.predict(img), img.shape[0])
 
-        if res["arabic_name"]:
-            final["arabic_name"] = res["arabic_name"]
-        if res["english_name"]:
-            final["english_name"] = res["english_name"]
-        if res["dob"]:
-            final["dob"] = res["dob"]
+            if res["cpr_verified"]:
+                final["cpr"], final["cpr_verified"] = res["cpr"], True
+            elif not final["cpr"]:
+                final["cpr"] = res["cpr"]
+
+            if res["arabic_name"]:
+                final["arabic_name"] = res["arabic_name"]
+            if res["english_name"]:
+                final["english_name"] = res["english_name"]
+            if res["dob"]:
+                final["dob"] = res["dob"]
 
     print(json.dumps(final, indent=4, ensure_ascii=False))
