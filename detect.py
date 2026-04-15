@@ -196,7 +196,7 @@ if __name__ == "__main__":
         # Apply environment silencers even if verbose is off
 
         # Initialize OCR with the new mkldnn parameter
-        ocr = PaddleOCR(enable_mkldnn=args.mkldnn, lang="ar")
+        ocr = PaddleOCR(enable_mkldnn=args.mkldnn, lang="ar", ocr_version='PP-OCRv5')
 
         final = {
             "cpr": None,
