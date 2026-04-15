@@ -4,6 +4,15 @@ FROM ghcr.io/prefix-dev/pixi:0.67.0-noble
 # Set up the working directory
 WORKDIR /app
 
+# Install system dependencies for OpenCV and OpenMP
+# libgl1 is what provides libGL.so.1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    gosu \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy your pixi.toml and pixi.lock first to leverage Docker layer caching
 COPY pixi.toml pixi.lock ./
 
