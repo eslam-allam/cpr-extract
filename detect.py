@@ -4,6 +4,7 @@ import json
 import cv2
 import contextlib
 import os
+import argparse
 
 
 @contextlib.contextmanager
@@ -152,13 +153,51 @@ def extract_data(results, h):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Extract and validate Bahraini CPR data from images."
+    )
 
-    with suppress_stdout_stderr():
+    # Positional argument for one or more image paths
+    parser.add_argument(
+        "images",
+        nargs="+",
+        help="Path to one or more image files (e.g., front.jpg back.jpg)",
+    )
+
+    # Optional flags
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging (show PaddleOCR logs)",
+    )
+    parser.add_argument(
+        "-m",
+        "--mkldnn",
+        action="store_true",
+        help="Enable MKLDNN acceleration (CPU only)",
+    )
+    parser.add_argument(
+        "-c",
+        "--model-source-check",
+        action="store_true",
+        help="Enable model source check (verify host connectivity)",
+    )
+
+    args = parser.parse_args()
+
+    with suppress_stdout_stderr(disabled=args.verbose):
+        os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = str(
+            not args.model_source_check
+        )
+
         from paddleocr import PaddleOCR
 
-        ocr = PaddleOCR(enable_mkldnn=False, lang="ar")
+        # Apply environment silencers even if verbose is off
+
+        # Initialize OCR with the new mkldnn parameter
+        ocr = PaddleOCR(enable_mkldnn=args.mkldnn, lang="ar")
+
         final = {
             "cpr": None,
             "cpr_verified": False,
@@ -167,10 +206,13 @@ if __name__ == "__main__":
             "dob": None,
         }
 
-        for path in sys.argv[1:]:
+        for path in args.images:
             img = cv2.imread(path)
             if img is None:
+                if args.verbose:
+                    print(f"Warning: Could not read image at {path}", file=sys.stderr)
                 continue
+
             res = extract_data(ocr.predict(img), img.shape[0])
 
             if res["cpr_verified"]:
@@ -185,4 +227,5 @@ if __name__ == "__main__":
             if res["dob"]:
                 final["dob"] = res["dob"]
 
+    # Final result is always clean JSON to stdout
     print(json.dumps(final, indent=4, ensure_ascii=False))
