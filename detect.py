@@ -6,18 +6,35 @@ from paddleocr import PaddleOCR
 
 
 def validate_bahrain_cpr(cpr_str):
+    """
+    Validates Bahraini CPR using the official Weight-Position algorithm.
+    Weights: 1, 2, 3, 4, 5, 6, 7, 8
+    Logic: Sum % 11
+    """
     if not cpr_str:
         return False
-    clean = re.sub(r"\D", "", cpr_str)
-    if len(clean) != 9:
+
+    # Ensure we only have the 9 digits
+    clean_cpr = re.sub(r"\D", "", cpr_str)
+    if len(clean_cpr) != 9:
         return False
-    digits = [int(d) for d in clean]
-    weights = [7, 6, 5, 4, 3, 2, 7, 6]
-    total = sum(digits[i] * weights[i] for i in range(8))
-    check = (11 - (total % 11)) % 11
-    if check == 10:
-        check = 0
-    return check == digits[8]
+
+    digits = [int(d) for d in clean_cpr]
+
+    # Bahrain specific weights
+    weights = [1, 2, 3, 4, 5, 6, 7, 8]
+
+    # Calculate weighted sum of the first 8 digits
+    total_sum = sum(digits[i] * weights[i] for i in range(8))
+
+    # The check digit is the remainder of (Sum / 11)
+    check_digit = total_sum % 11
+
+    # Handle the case where remainder is 10 (rarely issued, but usually 0)
+    if check_digit == 10:
+        check_digit = 0
+
+    return check_digit == digits[8]
 
 
 def extract_data(results, h):
