@@ -9,6 +9,7 @@ version = "0.1.0"
 
 [dependencies]
 python = "3.13.*"
+ccache = ">=4.13.3,<5"
 
 [pypi-dependencies]
 paddleocr = ">=3.4.1, <4"
