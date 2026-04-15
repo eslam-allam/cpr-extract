@@ -1,0 +1,33 @@
+services:
+  # The "Master" service that defines the build
+  web:
+    image: bahrain-cpr-extract:latest # Name the image so the worker can reuse it
+    environment:
+      - REDIS_HOST=redis
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    networks:
+      - cpr_net
+
+  # The worker reuses the image built by 'web'
+  worker:
+    image: bahrain-cpr-extract:latest
+    # depends_on:
+    #   web:
+    #     condition: service_healthy # Optional: wait for web to be ready
+    #   redis:
+    #     condition: service_started
+    command: ["rq", "worker", "--url", "redis://redis:6379"]
+    networks:
+      - cpr_net
+
+  redis:
+    image: redis:alpine
+    networks:
+      - cpr_net
+
+networks:
+  cpr_net:
+    driver: bridge

@@ -20,9 +20,6 @@ COPY pixi.toml pixi.lock ./
 # This will install ccache, paddlepaddle, etc., into the container
 RUN pixi install --locked && pixi clean
 
-# Copy the rest of your application code
-COPY . .
-
 # Set environment variables for silence and performance
 ENV PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True \
     PADDLE_LOG_LEVEL=3 \
@@ -33,5 +30,10 @@ ENV PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True \
 RUN pixi run python -c \
     "from paddleocr import PaddleOCR; PaddleOCR(enable_mkldnn=False, lang='ar', ocr_version='PP-OCRv5')"
 
+# Copy the rest of your application code
+COPY . .
+
 # Use 'pixi run' as the entrypoint to ensure the environment is activated
-ENTRYPOINT ["pixi", "run", "python", "detect.py"]
+ENTRYPOINT ["pixi", "run"]
+
+CMD [ "python", "server.py" ]
