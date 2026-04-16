@@ -4,10 +4,11 @@ import numpy as np
 from core.extract import extract_data
 from paddleocr import PaddleOCR
 
+os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
+ocr = PaddleOCR(enable_mkldnn=False, lang="ar", ocr_version="PP-OCRv5")
 
-def process_cpr_task(front: bytes, back: bytes, mkldnn=False, model_source_check=False):
-    os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = str(not model_source_check)
-    ocr = PaddleOCR(enable_mkldnn=mkldnn, lang="ar", ocr_version="PP-OCRv5")
+
+def process_cpr_task(front: bytes, back: bytes):
     # Initialize OCR with the new mkldnn parameter
 
     final = {
