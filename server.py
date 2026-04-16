@@ -40,4 +40,4 @@ async def get_status(_, job_id):
     })
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, workers=1, access_log=False, dev=True)
+    app.run(host="0.0.0.0", port=8000, workers=1, access_log=False)
