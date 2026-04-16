@@ -2,20 +2,13 @@ import cv2
 import os
 import numpy as np
 from core.extract import extract_data
+from paddleocr import PaddleOCR
 
-def process_cpr_task(
-    front: bytes, back: bytes, mkldnn=False, model_source_check=False
-):
-    os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = str(
-        not model_source_check
-    )
 
-    from paddleocr import PaddleOCR
-
-    # Apply environment silencers even if verbose is off
-
-    # Initialize OCR with the new mkldnn parameter
+def process_cpr_task(front: bytes, back: bytes, mkldnn=False, model_source_check=False):
+    os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = str(not model_source_check)
     ocr = PaddleOCR(enable_mkldnn=mkldnn, lang="ar", ocr_version="PP-OCRv5")
+    # Initialize OCR with the new mkldnn parameter
 
     final = {
         "cpr": None,
@@ -23,6 +16,7 @@ def process_cpr_task(
         "arabic_name": None,
         "english_name": None,
         "dob": None,
+        "nationality": None,
     }
 
     for bytes in [front, back]:
@@ -45,5 +39,7 @@ def process_cpr_task(
             final["english_name"] = res["english_name"]
         if res["dob"]:
             final["dob"] = res["dob"]
+        if final["nationality"] is None and res["nationality"] is not None:
+            final["nationality"] = res["nationality"]
 
     return final
