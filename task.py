@@ -1,6 +1,7 @@
 import cv2
 import os
 import numpy as np
+from rq import get_current_job
 from core.extract import extract_data
 from paddleocr import PaddleOCR
 
@@ -25,7 +26,11 @@ def process_cpr_task(front: bytes, back: bytes):
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
         if img is None:
-            return {"error": "Invalid image"}
+            job = get_current_job()
+            if job:
+                job.meta['error'] = 'Invalid image'
+                job.save_meta()
+            raise
 
         res = extract_data(ocr.predict(img), img.shape[0])
 

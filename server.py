@@ -36,7 +36,7 @@ async def get_status(_, job_id):
     return response.json({
         "job_id": job_id,
         "status": job.get_status(),
-        "result": job.result if job.is_finished else None
+        "result": job.result if job.is_finished else { "error" : job.meta.get("error") }
     })
 
 if __name__ == "__main__":
