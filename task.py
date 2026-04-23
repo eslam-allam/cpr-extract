@@ -1,16 +1,15 @@
 import cv2
-import os
 import numpy as np
 from rq import get_current_job
 from core.extract import extract_data
-from paddleocr import PaddleOCR
+import worker_init
 
-os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
-ocr = PaddleOCR(enable_mkldnn=False, lang="ar", ocr_version="PP-OCRv5")
 
 
 def process_cpr_task(front: bytes, back: bytes):
     # Initialize OCR with the new mkldnn parameter
+    #
+    ocr = worker_init.get_ocr()
 
     final = {
         "cpr": None,
@@ -21,9 +20,10 @@ def process_cpr_task(front: bytes, back: bytes):
         "nationality": None,
     }
 
-    for bytes in [front, back]:
-        nparr = np.frombuffer(bytes, np.uint8)
+    for image_bytes in [front, back]:
+        nparr = np.frombuffer(image_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        del nparr
 
         if img is None:
             job = get_current_job()
@@ -33,6 +33,7 @@ def process_cpr_task(front: bytes, back: bytes):
             raise
 
         res = extract_data(ocr.predict(img), img.shape[0])
+        del img
 
         if res["cpr_verified"]:
             final["cpr"], final["cpr_verified"] = res["cpr"], True
