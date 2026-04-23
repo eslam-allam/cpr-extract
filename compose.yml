@@ -1,7 +1,7 @@
 services:
   # The "Master" service that defines the build
   web:
-    image: ghcr.io/eslam-allam/cpr-extract:0.0.3 # Name the image so the worker can reuse it
+    image: ghcr.io/eslam-allam/cpr-extract:0.0.4 # Name the image so the worker can reuse it
     environment:
       - REDIS_HOST=redis
     ports:
@@ -13,7 +13,7 @@ services:
 
   # The worker reuses the image built by 'web'
   worker:
-    image: ghcr.io/eslam-allam/cpr-extract:0.0.3
+    image: ghcr.io/eslam-allam/cpr-extract:0.0.4
     # depends_on:
     #   web:
     #     condition: service_healthy # Optional: wait for web to be ready
@@ -22,6 +22,9 @@ services:
     command: ["rq", "worker", "-c", "settings"]
     networks:
       - cpr_net
+    mem_limit: 8g
+    memswap_limit: 8g
+    cpus: 2.0
 
   redis:
     image: redis:alpine

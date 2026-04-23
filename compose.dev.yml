@@ -22,6 +22,9 @@ services:
     command: ["python", "start_worker.py"]
     networks:
       - cpr_net
+    mem_limit: 8g
+    memswap_limit: 8g
+    cpus: 2.0
 
   redis:
     image: redis:alpine
