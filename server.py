@@ -39,5 +39,21 @@ async def get_status(_, job_id):
         "result": job.result if job.is_finished else { "error" : job.meta.get("error") }
     })
 
+@app.get("/health")
+async def health_check(_):
+    try:
+        # Check if Redis is reachable
+        redis_conn.ping()
+        return response.json(
+            {"status": "healthy", "checks": {"redis": "up", "server": "up"}}, status=200
+        )
+    except Exception as e:
+        # Return 503 Service Unavailable if Redis is down
+        return response.json(
+            {"status": "unhealthy", "checks": {"redis": "down", "error": str(e)}},
+            status=503,
+        )
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, workers=1, access_log=False)

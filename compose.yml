@@ -1,35 +1,48 @@
 services:
-  # The "Master" service that defines the build
+  # The Redis store
+  redis:
+    image: redis:alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - cpr_net
+
+  # The Sanic Web API
   web:
-    image: ghcr.io/eslam-allam/cpr-extract:0.0.4 # Name the image so the worker can reuse it
+    image: ghcr.io/eslam-allam/cpr-extract:0.0.4
     environment:
       - REDIS_HOST=redis
     ports:
       - "8000:8000"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pixi", "run", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     networks:
       - cpr_net
 
-  # The worker reuses the image built by 'web'
+  # The RQ Worker
   worker:
     image: ghcr.io/eslam-allam/cpr-extract:0.0.4
-    # depends_on:
-    #   web:
-    #     condition: service_healthy # Optional: wait for web to be ready
-    #   redis:
-    #     condition: service_started
-    command: ["rq", "worker", "-c", "settings"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    command: ["python", "start_worker.py"]
     networks:
       - cpr_net
     mem_limit: 8g
     memswap_limit: 8g
     cpus: 2.0
-
-  redis:
-    image: redis:alpine
-    networks:
-      - cpr_net
 
 networks:
   cpr_net:
