@@ -12,7 +12,7 @@ services:
 
   # The Sanic Web API
   web:
-    image: ghcr.io/eslam-allam/cpr-extract:0.0.5
+    image: eslamallam/bahrain-cpr-extract:0.0.5
     environment:
       - REDIS_HOST=redis
     ports:
@@ -31,7 +31,7 @@ services:
 
   # The RQ Worker
   worker:
-    image: ghcr.io/eslam-allam/cpr-extract:0.0.5
+    image: eslamallam/bahrain-cpr-extract:0.0.5
     depends_on:
       redis:
         condition: service_healthy
