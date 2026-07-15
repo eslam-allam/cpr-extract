@@ -30,6 +30,9 @@ async def predict_image(request):
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     ocr = worker_init.get_ocr()
+    if ocr is None:
+        return response.raw(b"OCR Engine is not initialized", status=503)
+
     raw_results = ocr.predict(img)
 
     # Safely convert raw_results to a list of pages
