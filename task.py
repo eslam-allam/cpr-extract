@@ -1,16 +1,13 @@
-import cv2
-import numpy as np
+import os
+import pickle
+import requests
 from rq import get_current_job
 from core.extract import extract_data
-import worker_init
 
+OCR_SERVICE_URL = os.getenv("OCR_SERVICE_URL", "http://ocr-service:5000/predict")
 
 
 def process_cpr_task(front: bytes, back: bytes):
-    # Initialize OCR with the new mkldnn parameter
-    #
-    ocr = worker_init.get_ocr()
-
     final = {
         "cpr": None,
         "cpr_verified": False,
@@ -20,33 +17,53 @@ def process_cpr_task(front: bytes, back: bytes):
         "nationality": None,
     }
 
-    for image_bytes in [front, back]:
-        nparr = np.frombuffer(image_bytes, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        del nparr
+    job = get_current_job()
 
-        if img is None:
-            job = get_current_job()
+    for side, image_bytes in [("front", front), ("back", back)]:
+        if not image_bytes or len(image_bytes) < 100:
             if job:
-                job.meta['error'] = 'Invalid image'
+                job.meta["error"] = f"Invalid or empty {side} image"
                 job.save_meta()
-            raise
+            raise ValueError(f"The provided {side} image payload is invalid or empty.")
 
-        res = extract_data(ocr.predict(img), img.shape[0])
-        del img
+        try:
+            files = {"image": (f"{side}.jpg", image_bytes, "image/jpeg")}
+            response = requests.post(OCR_SERVICE_URL, files=files, timeout=30)
+            response.raise_for_status()
 
-        if res["cpr_verified"]:
-            final["cpr"], final["cpr_verified"] = res["cpr"], True
-        elif not final["cpr"]:
+            payload = pickle.loads(response.content)
+            ocr_results = payload["results"]
+            image_height = payload["shape_0"]
+
+        except Exception as e:
+            error_msg = f"OCR Service communication failure on {side} image: {str(e)}"
+            if job:
+                job.meta["error"] = error_msg
+                job.save_meta()
+            raise RuntimeError(error_msg) from e
+
+        try:
+            res = extract_data(ocr_results, image_height)
+        except Exception as e:
+            error_msg = f"Parsing extraction failed on {side} image: {str(e)}"
+            if job:
+                job.meta["error"] = error_msg
+                job.save_meta()
+            raise RuntimeError(error_msg) from e
+
+        if res.get("cpr_verified"):
             final["cpr"] = res["cpr"]
+            final["cpr_verified"] = True
+        elif not final["cpr"]:
+            final["cpr"] = res.get("cpr")
 
-        if res["arabic_name"]:
+        if res.get("arabic_name"):
             final["arabic_name"] = res["arabic_name"]
-        if res["english_name"]:
+        if res.get("english_name"):
             final["english_name"] = res["english_name"]
-        if res["dob"]:
+        if res.get("dob"):
             final["dob"] = res["dob"]
-        if final["nationality"] is None and res["nationality"] is not None:
+        if final["nationality"] is None and res.get("nationality") is not None:
             final["nationality"] = res["nationality"]
 
     return final
