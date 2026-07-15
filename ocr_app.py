@@ -12,6 +12,14 @@ async def setup_ocr(app, loop):
     worker_init.initialize()
 
 
+@app.get("/health")
+async def health_check(request):
+    ocr = worker_init.get_ocr()
+    if ocr is not None:
+        return response.json({"status": "healthy", "model_loaded": True}, status=200)
+    return response.json({"status": "unhealthy", "model_loaded": False}, status=503)
+
+
 @app.post("/predict")
 async def predict_image(request):
     file = request.files.get("image")

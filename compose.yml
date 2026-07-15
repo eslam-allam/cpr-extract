@@ -40,7 +40,7 @@ services:
       web:
         condition: service_healthy
       ocr-service:
-        condition: service_started
+        condition: service_healthy
     command: ["rq", "worker", "default", "--url", "redis://redis:6379"]
     networks:
       - cpr_net
@@ -52,6 +52,12 @@ services:
     image: eslamallam/bahrain-cpr-extract:0.0.6
     command: ["python", "ocr_app.py"]
     restart: always
+    healthcheck:
+      test: ["CMD", "pixi", "run", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     networks:
       - cpr_net
     mem_limit: 8g
