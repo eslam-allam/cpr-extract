@@ -52,6 +52,7 @@ services:
     image: eslamallam/bahrain-cpr-extract:0.0.7
     command: ["python", "ocr_app.py"]
     restart: always
+    init: true
     healthcheck:
       test: ["CMD", "pixi", "run", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
       interval: 10s
